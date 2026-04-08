@@ -26,30 +26,30 @@ func NewScheduler(repo Repository, recurringService *RecurringService) *Schedule
 	}
 }
 
-// Start begins the automatic task generation scheduler
+// Start запускает автоматический планировщик генерации задач
 func (s *Scheduler) Start(ctx context.Context, interval time.Duration) {
 	s.ticker = time.NewTicker(interval)
 	defer s.ticker.Stop()
 
-	log.Printf("Task scheduler started with interval: %v", interval)
+	log.Printf("Планировщик задач запущен с интервалом: %v", interval)
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Task scheduler stopped")
+			log.Println("Планировщик задач остановлен")
 			return
 		case <-s.stopCh:
-			log.Println("Task scheduler stopped manually")
+			log.Println("Планировщик задач остановлен вручную")
 			return
 		case <-s.ticker.C:
 			if err := s.generateTasks(ctx); err != nil {
-				log.Printf("Error generating recurring tasks: %v", err)
+				log.Printf("Ошибка генерации повторяющихся задач: %v", err)
 			}
 		}
 	}
 }
 
-// Stop stops the scheduler
+// Stop останавливает планировщик
 func (s *Scheduler) Stop() {
 	close(s.stopCh)
 	if s.ticker != nil {
@@ -57,18 +57,18 @@ func (s *Scheduler) Stop() {
 	}
 }
 
-// generateTasks generates recurring tasks that are due
+// generateTasks генерирует повторяющиеся задачи, которые должны быть созданы
 func (s *Scheduler) generateTasks(ctx context.Context) error {
 	now := s.now()
 	
-	// Get all template tasks that need to generate new instances
+	// Получаем все шаблонные задачи, которым нужно создать новые экземпляры
 	templateTasks, err := s.getTasksNeedingGeneration(ctx, now)
 	if err != nil {
 		return fmt.Errorf("failed to get template tasks: %w", err)
 	}
 
 	if len(templateTasks) == 0 {
-		return nil // No tasks to generate
+		return nil // Нет задач для генерации
 	}
 
 	generatedCount := 0
@@ -77,7 +77,7 @@ func (s *Scheduler) generateTasks(ctx context.Context) error {
 			continue
 		}
 
-		// Create a new task instance from the template
+		// Создаём новый экземпляр задачи из шаблона
 		newTask := &taskdomain.Task{
 			Title:        template.Title,
 			Description:  template.Description,
@@ -92,30 +92,30 @@ func (s *Scheduler) generateTasks(ctx context.Context) error {
 			UpdatedAt:    now,
 		}
 
-		// Create the new task
+		// Создаём новую задачу
 		created, err := s.repo.Create(ctx, newTask)
 		if err != nil {
-			log.Printf("Failed to create recurring task from template %d: %v", template.ID, err)
+			log.Printf("Не удалось создать повторяющуюся задачу из шаблона %d: %v", template.ID, err)
 			continue
 		}
 
 		generatedCount++
-		log.Printf("Generated recurring task %d from template %d", created.ID, template.ID)
+		log.Printf("Сгенерирована повторяющаяся задача %d из шаблона %d", created.ID, template.ID)
 
-		// Update the template's next execution time
+		// Обновляем время следующего выполнения шаблона
 		if err := s.updateNextExecution(ctx, &template, now); err != nil {
-			log.Printf("Failed to update next execution for template %d: %v", template.ID, err)
+			log.Printf("Не удалось обновить следующее выполнение для шаблона %d: %v", template.ID, err)
 		}
 	}
 
 	if generatedCount > 0 {
-		log.Printf("Successfully generated %d recurring tasks", generatedCount)
+		log.Printf("Успешно сгенерировано %d повторяющихся задач", generatedCount)
 	}
 
 	return nil
 }
 
-// getTasksNeedingGeneration returns template tasks that should generate new instances
+// getTasksNeedingGeneration возвращает шаблонные задачи, которые должны создать новые экземпляры
 func (s *Scheduler) getTasksNeedingGeneration(ctx context.Context, now time.Time) ([]taskdomain.Task, error) {
 	allTasks, err := s.repo.List(ctx)
 	if err != nil {
@@ -134,22 +134,22 @@ func (s *Scheduler) getTasksNeedingGeneration(ctx context.Context, now time.Time
 	return templateTasks, nil
 }
 
-// updateNextExecution updates the next execution time for a template task
+// updateNextExecution обновляет время следующего выполнения для шаблонной задачи
 func (s *Scheduler) updateNextExecution(ctx context.Context, template *taskdomain.Task, now time.Time) error {
 	if template.Periodicity == nil {
 		return fmt.Errorf("template has no periodicity")
 	}
 
-	// Calculate next execution time
+	// Рассчитываем время следующего выполнения
 	nextExec := template.Periodicity.CalculateNextExecution(now)
 	
-	// Check if next execution is beyond end date
+	// Проверяем, не выходит ли следующее выполнение за пределы конечной даты
 	if template.Periodicity.EndDate != nil && nextExec.After(*template.Periodicity.EndDate) {
-		log.Printf("Template %d has reached end date, no more executions", template.ID)
+		log.Printf("Шаблон %d достиг конечной даты, больше нет выполнений", template.ID)
 		return nil
 	}
 
-	// Update the template with new next execution time
+	// Обновляем шаблон с новым временем следующего выполнения
 	template.Periodicity.NextExecution = &nextExec
 	template.UpdatedAt = now
 
@@ -157,14 +157,14 @@ func (s *Scheduler) updateNextExecution(ctx context.Context, template *taskdomai
 	return err
 }
 
-// GenerateOnce performs immediate task generation (for testing or manual trigger)
+// GenerateOnce выполняет немедленную генерацию задач (для тестирования или ручного запуска)
 func (s *Scheduler) GenerateOnce(ctx context.Context) (int, error) {
 	err := s.generateTasks(ctx)
 	if err != nil {
 		return 0, err
 	}
 	
-	// Count generated tasks
+	// Считаем сгенерированные задачи
 	templateTasks, err := s.getTasksNeedingGeneration(ctx, s.now())
 	if err != nil {
 		return 0, err

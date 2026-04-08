@@ -38,10 +38,10 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*taskdomain.Ta
 	model.CreatedAt = now
 	model.UpdatedAt = now
 
-	// For periodic tasks, create the first instance immediately if scheduled
+	// Для периодических задач создаём первый экземпляр немедленно, если запланировано
 	if normalized.Periodicity != nil && normalized.Periodicity.IsRecurring() {
 		if normalized.ScheduledAt != nil && !normalized.ScheduledAt.IsZero() {
-			// Create the first scheduled task instance
+			// Создаём первый запланированный экземпляр задачи
 			firstInstance := &taskdomain.Task{
 				Title:        normalized.Title,
 				Description:  normalized.Description,
@@ -49,23 +49,23 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*taskdomain.Ta
 				ScheduledAt:  normalized.ScheduledAt,
 				Periodicity:  &taskdomain.Periodicity{
 					Type:         taskdomain.PeriodicityTypeNone,
-					ParentTaskID: nil, // Will be set after template creation
+					ParentTaskID: nil, // Будет установлен после создания шаблона
 					IsTemplate:   false,
 				},
 				CreatedAt:    now,
 				UpdatedAt:    now,
 			}
 			
-			// Create template first
+			// Сначала создаём шаблон
 			template, err := s.repo.Create(ctx, model)
 			if err != nil {
 				return nil, err
 			}
 			
-			// Set parent reference for the first instance
+			// Устанавливаем ссылку на родителя для первого экземпляра
 			firstInstance.Periodicity.ParentTaskID = &template.ID
 			
-			// Create the first instance
+			// Создаём первый экземпляр
 			_, err = s.repo.Create(ctx, firstInstance)
 			if err != nil {
 				return nil, err
@@ -153,13 +153,13 @@ func validateCreateInput(input CreateInput) (CreateInput, error) {
 			return CreateInput{}, fmt.Errorf("%w: invalid periodicity configuration", ErrInvalidInput)
 		}
 
-		// For periodic tasks, automatically calculate next execution
+		// Для периодических задач автоматически рассчитываем следующее выполнение
 		if input.Periodicity.IsRecurring() && input.Periodicity.NextExecution == nil {
 			if input.Periodicity.StartDate.IsZero() {
 				return CreateInput{}, fmt.Errorf("%w: start date is required for periodic tasks", ErrInvalidInput)
 			}
 			
-			// Calculate next execution from start date
+			// Рассчитываем следующее выполнение от даты начала
 			nextExec := input.Periodicity.CalculateNextExecution(input.Periodicity.StartDate.Add(-24 * time.Hour))
 			input.Periodicity.NextExecution = &nextExec
 		}

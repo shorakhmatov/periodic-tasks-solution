@@ -1,4 +1,4 @@
-# Task Periodicity Feature - Medical Information System
+# Feature: Periodicity Tasks - Medical Information System
 
 ## Overview
 
