@@ -1,60 +1,60 @@
-# Feature: Periodicity Tasks - Medical Information System
+# Функция периодичности задач - Медицинская информационная система
 
-## Overview
+## Обзор
 
-Implemented automatic recurring task generation for the medical task tracker module. Medical staff can now set up periodic tasks that automatically create instances according to defined schedules.
+Реализована автоматическая генерация периодических задач для модуля трекера задач медицинской системы. Медицинский персонал может настраивать периодические задачи, которые автоматически создаются согласно заданному расписанию.
 
-## Requirements Satisfied
+## Выполненные требования
 
-1. **Add periodicity settings** - Full API support for task periodicity
-2. **Automatic task creation** - Tasks are generated automatically based on settings
-3. **Four periodicity types**:
-   - Daily (every N-th day)
-   - Monthly (specific day 1-30)
-   - Specific dates
-   - Even/Odd days
+1. **Добавлены настройки периодичности** - Полная поддержка API для периодичности задач
+2. **Автоматическое создание задач** - Задачи генерируются автоматически на основе настроек
+3. **Четыре типа периодичности**:
+   - Ежедневные (каждый N-й день)
+   - Ежемесячные (конкретное число 1-30)
+   - Конкретные даты
+   - Чётные/нечётные дни
 
-## Technical Implementation
+## Техническая реализация
 
-### Architecture
-- **Template-based system**: Separate periodic templates from task instances
-- **Automatic scheduler**: Background process generates tasks every 5 minutes
-- **Immediate generation**: First instance created when scheduled date provided
+### Архитектура
+- **Система на основе шаблонов**: Разделение периодических шаблонов и экземпляров задач
+- **Автоматический планировщик**: Фоновый процесс генерирует задачи каждые 5 минут
+- **Немедленная генерация**: Первая задача создаётся сразу при указании даты
 
-### Key Files Added/Modified
+### Ключевые файлы
 
-**New Files:**
-- `internal/domain/task/periodicity.go` - Periodicity logic and validation
-- `migrations/0002_add_periodicity_fields.up.sql` - Database schema
-- `internal/usecase/task/recurring_service.go` - Task generation service
-- `internal/usecase/task/scheduler.go` - Background scheduler
+**Новые файлы:**
+- `internal/domain/task/periodicity.go` - Логика и валидация периодичности
+- `migrations/0002_add_periodicity_fields.up.sql` - Схема базы данных
+- `internal/usecase/task/recurring_service.go` - Сервис генерации задач
+- `internal/usecase/task/scheduler.go` - Фоновый планировщик
 
-**Modified Files:**
-- `internal/domain/task/task.go` - Added periodicity fields
-- `internal/repository/postgres/task_repository.go` - Database operations
-- `internal/usecase/task/service.go` - Business logic with auto-generation
-- `internal/usecase/task/ports.go` - Input/output structures
-- `internal/transport/http/handlers/dto.go` - API DTOs
-- `internal/transport/http/handlers/task_handler.go` - HTTP handlers
-- `internal/transport/http/router.go` - API routes
-- `cmd/api/main.go` - Application entry point with scheduler
+**Изменённые файлы:**
+- `internal/domain/task/task.go` - Добавлены поля периодичности
+- `internal/repository/postgres/task_repository.go` - Операции с базой данных
+- `internal/usecase/task/service.go` - Бизнес-логика с автогенерацией
+- `internal/usecase/task/ports.go` - Структуры входных/выходных данных
+- `internal/transport/http/handlers/dto.go` - API DTO
+- `internal/transport/http/handlers/task_handler.go` - HTTP обработчики
+- `internal/transport/http/router.go` - Маршруты API
+- `cmd/api/main.go` - Точка входа с планировщиком
 
-### Database Schema
-Added 12 periodicity columns to tasks table:
+### Схема базы данных
+Добавлено 12 колонок периодичности в таблицу задач:
 - `periodicity_type`, `periodicity_daily_interval`, `periodicity_monthly_day`
 - `periodicity_specific_dates`, `periodicity_even_odd_type`
 - `periodicity_start_date`, `periodicity_end_date`, `periodicity_next_execution`
 - `periodicity_parent_task_id`, `periodicity_is_template`
 
-## API Usage
+## Использование API
 
-### Create Periodic Task
+### Создание периодической задачи
 ```bash
 curl -X POST http://localhost:8080/api/v1/tasks \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Daily Patient Check-in",
-    "description": "Call patients for daily check-in",
+    "title": "Ежедневный обзвон пациентов",
+    "description": "Позвонить пациентам для ежедневной проверки",
     "status": "new",
     "scheduled_at": "2023-10-25T09:00:00Z",
     "periodicity": {
@@ -65,11 +65,11 @@ curl -X POST http://localhost:8080/api/v1/tasks \
   }'
 ```
 
-**Result**: Template created + first instance generated automatically
+**Результат**: Создан шаблон + первая задача сгенерирована автоматически
 
-### Periodicity Types Examples
+### Примеры типов периодичности
 
-**Daily (every 3 days):**
+**Ежедневные (каждые 3 дня):**
 ```json
 {
   "type": "daily",
@@ -78,7 +78,7 @@ curl -X POST http://localhost:8080/api/v1/tasks \
 }
 ```
 
-**Monthly (15th day):**
+**Ежемесячные (15-е число):**
 ```json
 {
   "type": "monthly",
@@ -87,7 +87,7 @@ curl -X POST http://localhost:8080/api/v1/tasks \
 }
 ```
 
-**Specific dates:**
+**Конкретные даты:**
 ```json
 {
   "type": "specific",
@@ -96,7 +96,7 @@ curl -X POST http://localhost:8080/api/v1/tasks \
 }
 ```
 
-**Even days only:**
+**Только чётные дни:**
 ```json
 {
   "type": "even_odd",
@@ -105,96 +105,96 @@ curl -X POST http://localhost:8080/api/v1/tasks \
 }
 ```
 
-### Additional Endpoints
-- `POST /api/v1/tasks/generate-recurring` - Manual task generation
-- `GET /api/v1/tasks/templates` - List periodic templates
-- `GET /api/v1/tasks/{id}/children` - List generated tasks
+### Дополнительные endpoints
+- `POST /api/v1/tasks/generate-recurring` - Ручной запуск генерации
+- `GET /api/v1/tasks/templates` - Список периодических шаблонов
+- `GET /api/v1/tasks/{id}/children` - Список сгенерированных задач
 
-## How It Works
+## Как это работает
 
-1. **Setup**: Medical staff creates task with periodicity settings
-2. **Immediate**: First instance created if `scheduled_at` provided
-3. **Automatic**: Background scheduler runs every 5 minutes
-4. **Generation**: New instances created when due
-5. **Tracking**: Template-child relationships maintained
+1. **Настройка**: Медперсонал создаёт задачу с настройками периодичности
+2. **Немедленно**: Первая задача создаётся, если указана дата `scheduled_at`
+3. **Автоматически**: Фоновый планировщик работает каждые 5 минут
+4. **Генерация**: Новые экземпляры создаются по расписанию
+5. **Отслеживание**: Поддерживаются связи шаблон-задача
 
-## Edge Cases Handled
+## Обработка граничных случаев
 
-- Month transitions (February 30th handled)
-- Leap years
-- End dates
-- Time zones (UTC)
-- Invalid configurations
+- Переходы между месяцами (обработка 30-го числа)
+- Високосные годы
+- Даты окончания
+- Часовые пояса (UTC)
+- Невалидные конфигурации
 
-## Assumptions Made
+## Предположения
 
-1. **UTC Time Zone**: All calculations in UTC for consistency
-2. **Monthly Day Limit**: Limited to day 30 for shorter months
-3. **Daily Interval Limit**: 1-365 days for practicality
-4. **Template Pattern**: Separate templates from instances for audit trail
-5. **Scheduler Interval**: 5 minutes balances responsiveness and performance
+1. **Часовой пояс UTC**: Все вычисления в UTC для консистентности
+2. **Лимит месячного дня**: Ограничение до 30-го для коротких месяцев
+3. **Лимит ежедневного интервала**: 1-365 дней для практичности
+4. **Шаблонный подход**: Разделение шаблонов и экземпляров для аудита
+5. **Интервал планировщика**: 5 минут балансирует отзывчивость и производительность
 
-## Running the Project
+## Запуск проекта
 
-### With Docker (Recommended)
+### С Docker (рекомендуется)
 ```bash
 docker compose up --build
-# Service available at http://localhost:8080
+# Сервис доступен на http://localhost:8080
 ```
 
-### Local Setup
+### Локальный запуск
 ```bash
 go mod tidy
 go run cmd/api/main.go
 ```
 
-## Testing the Feature
+## Тестирование функции
 
-1. Create a periodic task with any type
-2. Verify first instance created immediately
-3. Wait 5+ minutes for scheduler to run
-4. Check for new instances
-5. List templates and children to verify relationships
+1. Создать периодическую задачу любого типа
+2. Проверить немедленное создание первой задачи
+3. Подождать 5+ минут для запуска планировщика
+4. Проверить появление новых задач
+5. Просмотреть шаблоны и дочерние задачи
 
-## Design Decisions
+## Архитектурные решения
 
-1. **Template-based**: Clear separation of definitions and instances
-2. **Automatic generation**: Reduces manual intervention
-3. **Background scheduler**: Continuous operation without user action
-4. **Comprehensive validation**: Prevents invalid configurations
-5. **Performance optimized**: Efficient database queries and indexing
+1. **Шаблонный подход**: Чёткое разделение определений и экземпляров
+2. **Автоматическая генерация**: Минимальное ручное вмешательство
+3. **Фоновый планировщик**: Непрерывная работа без действий пользователя
+4. **Комплексная валидация**: Предотвращение невалидных конфигураций
+5. **Оптимизация производительности**: Эффективные запросы к базе данных
 
-## Future Enhancements
+## Будущие улучшения
 
-- Built-in scheduler triggers
-- Complex patterns (every Monday/Wednesday)
-- Task dependencies
-- Time zone support per user
-- Bulk operations
+- Встроенные триггеры планировщика
+- Сложные паттерны (каждый понедельник/среда)
+- Зависимости между задачами
+- Поддержка часовых поясов для каждого пользователя
+- Массовые операции
 
-## Repository Structure
+## Структура репозитория
 
 ```
-cmd/api/main.go                          # Application entry point
+cmd/api/main.go                          # Точка входа приложения
 internal/
   domain/task/
-    task.go                              # Task entity
-    periodicity.go                       # Periodicity logic
+    task.go                              # Сущность задачи
+    periodicity.go                       # Логика периодичности
   usecase/task/
-    service.go                           # Business logic
-    recurring_service.go                 # Task generation
-    scheduler.go                         # Background scheduler
-    ports.go                             # Interfaces
+    service.go                           # Бизнес-логика
+    recurring_service.go                 # Генерация задач
+    scheduler.go                         # Фоновый планировщик
+    ports.go                             # Интерфейсы
   repository/postgres/
-    task_repository.go                   # Data access
+    task_repository.go                   # Доступ к данным
   transport/http/
     handlers/
-      dto.go                            # API DTOs
-      task_handler.go                   # HTTP handlers
-    router.go                            # Routes
+      dto.go                            # API DTO
+      task_handler.go                   # HTTP обработчики
+    router.go                            # Маршруты
 migrations/
-  0001_create_tasks.up.sql              # Original schema
-  0002_add_periodicity_fields.up.sql    # Periodicity schema
+  0001_create_tasks.up.sql              # Исходная схема
+  0002_add_periodicity_fields.up.sql    # Схема периодичности
 ```
 
-This implementation provides a robust, automatic recurring task system that integrates seamlessly with the existing medical information system.
+Данная реализация предоставляет надёжную систему автоматической генерации периодических задач, полностью интегрированную в существующую медицинскую информационную систему.

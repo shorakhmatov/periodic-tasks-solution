@@ -156,7 +156,7 @@ func writeUsecaseError(w http.ResponseWriter, err error) {
 	case errors.Is(err, taskusecase.ErrInvalidInput):
 		writeError(w, http.StatusBadRequest, err)
 	default:
-		writeError(w, http.StatusInternalServerError, err)
+		writeError(w, http.StatusInternalServerError, errors.New("не удалось сгенерировать повторяющиеся задачи"))
 	}
 }
 
@@ -167,6 +167,7 @@ func writeError(w http.ResponseWriter, status int, err error) {
 }
 
 func (h *TaskHandler) GenerateRecurringTasks(w http.ResponseWriter, r *http.Request) {
+	// GenerateRecurring обрабатывает запрос на ручную генерацию повторяющихся задач
 	generatedTasks, err := h.recurringService.GenerateRecurringTasks(r.Context())
 	if err != nil {
 		writeUsecaseError(w, err)
@@ -178,13 +179,15 @@ func (h *TaskHandler) GenerateRecurringTasks(w http.ResponseWriter, r *http.Requ
 		response = append(response, newTaskDTO(&generatedTasks[i]))
 	}
 
+	// Вернуть сгенерированные задачи
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"generated_tasks": response,
-		"count":          len(response),
+		"count":           len(response),
 	})
 }
 
 func (h *TaskHandler) GetTemplateTasks(w http.ResponseWriter, r *http.Request) {
+	// Получить все шаблонные задачи
 	templateTasks, err := h.recurringService.GetTemplateTasks(r.Context())
 	if err != nil {
 		writeUsecaseError(w, err)
@@ -196,6 +199,7 @@ func (h *TaskHandler) GetTemplateTasks(w http.ResponseWriter, r *http.Request) {
 		response = append(response, newTaskDTO(&templateTasks[i]))
 	}
 
+	// GetTemplateTasks возвращает все периодические шаблонные задачи
 	writeJSON(w, http.StatusOK, response)
 }
 
@@ -206,6 +210,7 @@ func (h *TaskHandler) GetChildTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Получить все дочерние задачи
 	childTasks, err := h.recurringService.GetChildTasks(r.Context(), id)
 	if err != nil {
 		writeUsecaseError(w, err)

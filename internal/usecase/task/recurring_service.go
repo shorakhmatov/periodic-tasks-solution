@@ -20,14 +20,14 @@ func NewRecurringService(repo Repository) *RecurringService {
 	}
 }
 
-// GenerateRecurringTasks creates new tasks based on periodic template tasks
+// GenerateRecurringTasks создаёт новые задачи на основе периодических шаблонных задач
 func (s *RecurringService) GenerateRecurringTasks(ctx context.Context) ([]taskdomain.Task, error) {
 	now := s.now()
 	
-	// Get all template tasks that need to generate new instances
+	// Получить все шаблонные задачи, которые нуждаются в генерации новых экземпляров
 	templateTasks, err := s.getTasksNeedingGeneration(ctx, now)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get template tasks: %w", err)
+		return nil, fmt.Errorf("не удалось получить шаблонные задачи: %w", err)
 	}
 
 	var generatedTasks []taskdomain.Task
@@ -37,7 +37,7 @@ func (s *RecurringService) GenerateRecurringTasks(ctx context.Context) ([]taskdo
 			continue
 		}
 
-		// Create a new task instance from the template
+		// Создать новый экземпляр задачи из шаблона
 		newTask := &taskdomain.Task{
 			Title:        template.Title,
 			Description:  template.Description,
@@ -52,24 +52,24 @@ func (s *RecurringService) GenerateRecurringTasks(ctx context.Context) ([]taskdo
 			UpdatedAt:    now,
 		}
 
-		// Create the new task
+		// Создать новую задачу
 		created, err := s.repo.Create(ctx, newTask)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create recurring task: %w", err)
+			return nil, fmt.Errorf("не удалось создать повторяющуюся задачу: %w", err)
 		}
 
 		generatedTasks = append(generatedTasks, *created)
 
-		// Update the template's next execution time
+		// Обновить время следующего выполнения шаблона
 		if err := s.updateNextExecution(ctx, &template, now); err != nil {
-			return nil, fmt.Errorf("failed to update next execution: %w", err)
+			return nil, fmt.Errorf("не удалось обновить следующее выполнение: %w", err)
 		}
 	}
 
 	return generatedTasks, nil
 }
 
-// getTasksNeedingGeneration returns template tasks that should generate new instances
+// getTasksNeedingGeneration возвращает шаблонные задачи, которые должны сгенерировать новые экземпляры
 func (s *RecurringService) getTasksNeedingGeneration(ctx context.Context, now time.Time) ([]taskdomain.Task, error) {
 	// For now, we'll get all template tasks and filter in memory
 	// In a production system, you might want to add a database query for efficiency
@@ -90,22 +90,22 @@ func (s *RecurringService) getTasksNeedingGeneration(ctx context.Context, now ti
 	return templateTasks, nil
 }
 
-// updateNextExecution updates the next execution time for a template task
+// updateNextExecution обновляет время следующего выполнения для шаблонной задачи
 func (s *RecurringService) updateNextExecution(ctx context.Context, template *taskdomain.Task, now time.Time) error {
 	if template.Periodicity == nil {
-		return fmt.Errorf("template has no periodicity")
+		return fmt.Errorf("у шаблона нет периодичности")
 	}
 
-	// Calculate next execution time
+	// Рассчитать время следующего выполнения
 	nextExec := template.Periodicity.CalculateNextExecution(now)
 	
-	// Check if next execution is beyond end date
+	// Проверить, не выходит ли следующее выполнение за дату окончания
 	if template.Periodicity.EndDate != nil && nextExec.After(*template.Periodicity.EndDate) {
-		// No more executions needed, you might want to deactivate the template here
+		// Больше нет выполнений после даты окончания
 		return nil
 	}
 
-	// Update the template with new next execution time
+	// Обновить шаблон с новым временем следующего выполнения
 	template.Periodicity.NextExecution = &nextExec
 	template.UpdatedAt = now
 

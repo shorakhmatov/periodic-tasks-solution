@@ -38,10 +38,10 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*taskdomain.Ta
 	model.CreatedAt = now
 	model.UpdatedAt = now
 
-	// Для периодических задач создаём первый экземпляр немедленно, если запланировано
+	// Для периодических задач создать первый экземпляр немедленно, если указано расписание
 	if normalized.Periodicity != nil && normalized.Periodicity.IsRecurring() {
 		if normalized.ScheduledAt != nil && !normalized.ScheduledAt.IsZero() {
-			// Создаём первый запланированный экземпляр задачи
+			// Создать первый экземпляр задачи по расписанию
 			firstInstance := &taskdomain.Task{
 				Title:        normalized.Title,
 				Description:  normalized.Description,
@@ -49,23 +49,23 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*taskdomain.Ta
 				ScheduledAt:  normalized.ScheduledAt,
 				Periodicity:  &taskdomain.Periodicity{
 					Type:         taskdomain.PeriodicityTypeNone,
-					ParentTaskID: nil, // Будет установлен после создания шаблона
+					ParentTaskID: nil, // Будет установлено после создания шаблона
 					IsTemplate:   false,
 				},
 				CreatedAt:    now,
 				UpdatedAt:    now,
 			}
 			
-			// Сначала создаём шаблон
+			// Сначала создать шаблон
 			template, err := s.repo.Create(ctx, model)
 			if err != nil {
 				return nil, err
 			}
 			
-			// Устанавливаем ссылку на родителя для первого экземпляра
+			// Установить ссылку на родителя для первого экземпляра
 			firstInstance.Periodicity.ParentTaskID = &template.ID
 			
-			// Создаём первый экземпляр
+			// Создать первый экземпляр
 			_, err = s.repo.Create(ctx, firstInstance)
 			if err != nil {
 				return nil, err
@@ -85,7 +85,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*taskdomain.Ta
 
 func (s *Service) GetByID(ctx context.Context, id int64) (*taskdomain.Task, error) {
 	if id <= 0 {
-		return nil, fmt.Errorf("%w: id must be positive", ErrInvalidInput)
+		return nil, fmt.Errorf("%w: id должен быть положительным", ErrInvalidInput)
 	}
 
 	return s.repo.GetByID(ctx, id)
@@ -93,7 +93,7 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*taskdomain.Task, erro
 
 func (s *Service) Update(ctx context.Context, id int64, input UpdateInput) (*taskdomain.Task, error) {
 	if id <= 0 {
-		return nil, fmt.Errorf("%w: id must be positive", ErrInvalidInput)
+		return nil, fmt.Errorf("%w: id должен быть положительным", ErrInvalidInput)
 	}
 
 	normalized, err := validateUpdateInput(input)
@@ -121,7 +121,7 @@ func (s *Service) Update(ctx context.Context, id int64, input UpdateInput) (*tas
 
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	if id <= 0 {
-		return fmt.Errorf("%w: id must be positive", ErrInvalidInput)
+		return fmt.Errorf("%w: id должен быть положительным", ErrInvalidInput)
 	}
 
 	return s.repo.Delete(ctx, id)
@@ -136,7 +136,7 @@ func validateCreateInput(input CreateInput) (CreateInput, error) {
 	input.Description = strings.TrimSpace(input.Description)
 
 	if input.Title == "" {
-		return CreateInput{}, fmt.Errorf("%w: title is required", ErrInvalidInput)
+		return CreateInput{}, fmt.Errorf("%w: заголовок обязателен", ErrInvalidInput)
 	}
 
 	if input.Status == "" {
@@ -144,22 +144,22 @@ func validateCreateInput(input CreateInput) (CreateInput, error) {
 	}
 
 	if !input.Status.Valid() {
-		return CreateInput{}, fmt.Errorf("%w: invalid status", ErrInvalidInput)
+		return CreateInput{}, fmt.Errorf("%w: неверный статус", ErrInvalidInput)
 	}
 
-	// Validate periodicity
+	// Валидация периодичности
 	if input.Periodicity != nil {
 		if !input.Periodicity.IsValid() {
-			return CreateInput{}, fmt.Errorf("%w: invalid periodicity configuration", ErrInvalidInput)
+			return CreateInput{}, fmt.Errorf("%w: неверная конфигурация периодичности", ErrInvalidInput)
 		}
 
-		// Для периодических задач автоматически рассчитываем следующее выполнение
+		// Для периодических задач автоматически рассчитать следующее выполнение
 		if input.Periodicity.IsRecurring() && input.Periodicity.NextExecution == nil {
 			if input.Periodicity.StartDate.IsZero() {
-				return CreateInput{}, fmt.Errorf("%w: start date is required for periodic tasks", ErrInvalidInput)
+				return CreateInput{}, fmt.Errorf("%w: дата начала обязательна для периодических задач", ErrInvalidInput)
 			}
 			
-			// Рассчитываем следующее выполнение от даты начала
+			// Рассчитать следующее выполнение от даты начала
 			nextExec := input.Periodicity.CalculateNextExecution(input.Periodicity.StartDate.Add(-24 * time.Hour))
 			input.Periodicity.NextExecution = &nextExec
 		}
@@ -173,16 +173,16 @@ func validateUpdateInput(input UpdateInput) (UpdateInput, error) {
 	input.Description = strings.TrimSpace(input.Description)
 
 	if input.Title == "" {
-		return UpdateInput{}, fmt.Errorf("%w: title is required", ErrInvalidInput)
+		return UpdateInput{}, fmt.Errorf("%w: заголовок обязателен", ErrInvalidInput)
 	}
 
 	if !input.Status.Valid() {
-		return UpdateInput{}, fmt.Errorf("%w: invalid status", ErrInvalidInput)
+		return UpdateInput{}, fmt.Errorf("%w: неверный статус", ErrInvalidInput)
 	}
 
-	// Validate periodicity
+	// Валидация периодичности
 	if input.Periodicity != nil && !input.Periodicity.IsValid() {
-		return UpdateInput{}, fmt.Errorf("%w: invalid periodicity configuration", ErrInvalidInput)
+		return UpdateInput{}, fmt.Errorf("%w: неверная конфигурация периодичности", ErrInvalidInput)
 	}
 
 	return input, nil

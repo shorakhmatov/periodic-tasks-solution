@@ -24,14 +24,14 @@ const (
 type Periodicity struct {
 	Type           PeriodicityType `json:"type"`
 	DailyInterval  int             `json:"daily_interval,omitempty"`        // для ежедневных: каждые N дней
-	MonthlyDay     int             `json:"monthly_day,omitempty"`          // для ежемесячных: день месяца (1-30)
+	MonthlyDay     int             `json:"monthly_day,omitempty"`          // для ежемесячных: число месяца (1-30)
 	SpecificDates  []time.Time     `json:"specific_dates,omitempty"`       // для конкретных дат
 	EvenOddType    EvenOddType     `json:"even_odd_type,omitempty"`        // для чётных/нечётных дней
-	StartDate      time.Time       `json:"start_date"`                     // когда начинается периодичность
+	StartDate      time.Time       `json:"start_date"`                     // дата начала периодичности
 	EndDate        *time.Time      `json:"end_date,omitempty"`             // опциональная дата окончания
-	NextExecution  *time.Time      `json:"next_execution,omitempty"`       // когда должна быть создана следующая задача
+	NextExecution  *time.Time      `json:"next_execution,omitempty"`       // когда создать следующую задачу
 	ParentTaskID   *int64          `json:"parent_task_id,omitempty"`       // для сгенерированных задач
-	IsTemplate     bool            `json:"is_template"`                    // IsValid проверяет, является ли конфигурация периодичности валидной
+	IsTemplate     bool            `json:"is_template"`                    // является ли это шаблонной задачей
 }
 
 func (p Periodicity) IsValid() bool {
@@ -56,7 +56,7 @@ func (p Periodicity) ShouldCreateTask(now time.Time) bool {
 		return false
 	}
 
-	// Проверяем, достигнут ли конечный срок
+	// Проверить достижена ли дата окончания
 	if p.EndDate != nil && now.After(*p.EndDate) {
 		return false
 	}
@@ -64,39 +64,38 @@ func (p Periodicity) ShouldCreateTask(now time.Time) bool {
 	return !now.Before(*p.NextExecution)
 }
 
-func (p Periodicity) CalculateNextExecution(from time.Time) time.Time {
+func (p Periodicity) CalculateNextExecution(lastExecution time.Time) time.Time {
 	switch p.Type {
 	case PeriodicityTypeDaily:
-		return from.AddDate(0, 0, p.DailyInterval)
+		return lastExecution.AddDate(0, 0, p.DailyInterval)
 	case PeriodicityTypeMonthly:
-		next := from.AddDate(0, 1, 0)
-		// Вычисляем правильный день месяца (1-30)
+		next := lastExecution.AddDate(0, 1, 0)
+		// Подстроить под правильное число месяца (1-30)
 		for next.Day() != p.MonthlyDay && next.Day() <= 30 {
 			next = next.AddDate(0, 0, 1)
 		}
-		// Обрабатываем переходы между месяцами (например, 31 января -> 28/29 февраля)
+		// Если вышли за 30-е число, перейти к следующему месяцу
 		if next.Day() != p.MonthlyDay {
-			// Если целевой день не существует в месяце, используем последний день
-			for next.Day() > p.MonthlyDay {
-				next = next.AddDate(0, 0, -1)
-			}
+			next = time.Date(next.Year(), next.Month()+1, p.MonthlyDay, 0, 0, 0, 0, next.Location())
 		}
 		return next
 	case PeriodicityTypeSpecific:
-		// Находим следующую конкретную дату после последнего выполнения
+		// Найти следующую конкретную дату после последнего выполнения
 		for _, date := range p.SpecificDates {
-			if date.After(from) {
+			if date.After(lastExecution) {
 				return date
 			}
 		}
-		// Нет больше конкретных дат
+		// Больше нет конкретных дат
 		return time.Time{}
 	case PeriodicityTypeEvenOdd:
-		next := from.AddDate(0, 0, 1)
+		next := lastExecution.AddDate(0, 0, 1)
 		for {
-			// Ищем следующий день, который соответствует требованию чётности/нечётности
-			if (p.EvenOddType == EvenOddTypeEven && next.Day()%2 == 0) ||
-				(p.EvenOddType == EvenOddTypeOdd && next.Day()%2 == 1) {
+			day := next.Day()
+			isEven := day%2 == 0
+			
+			if (p.EvenOddType == EvenOddTypeEven && isEven) || 
+			   (p.EvenOddType == EvenOddTypeOdd && !isEven) {
 				return next
 			}
 			next = next.AddDate(0, 0, 1)
@@ -107,5 +106,5 @@ func (p Periodicity) CalculateNextExecution(from time.Time) time.Time {
 }
 
 func (p Periodicity) IsRecurring() bool {
-	return p.Type != PeriodicityTypeNone && p.IsTemplate
+	return p.Type != PeriodicityTypeNone
 }

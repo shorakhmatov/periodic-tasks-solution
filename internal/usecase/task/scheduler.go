@@ -26,7 +26,7 @@ func NewScheduler(repo Repository, recurringService *RecurringService) *Schedule
 	}
 }
 
-// Start запускает автоматический планировщик генерации задач
+// Start запускает планировщик автоматической генерации задач
 func (s *Scheduler) Start(ctx context.Context, interval time.Duration) {
 	s.ticker = time.NewTicker(interval)
 	defer s.ticker.Stop()
@@ -61,7 +61,7 @@ func (s *Scheduler) Stop() {
 func (s *Scheduler) generateTasks(ctx context.Context) error {
 	now := s.now()
 	
-	// Получаем все шаблонные задачи, которым нужно создать новые экземпляры
+	// Получить все шаблонные задачи, которые нуждаются в генерации новых экземпляров
 	templateTasks, err := s.getTasksNeedingGeneration(ctx, now)
 	if err != nil {
 		return fmt.Errorf("failed to get template tasks: %w", err)
@@ -77,7 +77,7 @@ func (s *Scheduler) generateTasks(ctx context.Context) error {
 			continue
 		}
 
-		// Создаём новый экземпляр задачи из шаблона
+		// Создать новый экземпляр задачи из шаблона
 		newTask := &taskdomain.Task{
 			Title:        template.Title,
 			Description:  template.Description,
@@ -92,7 +92,7 @@ func (s *Scheduler) generateTasks(ctx context.Context) error {
 			UpdatedAt:    now,
 		}
 
-		// Создаём новую задачу
+		// Create the new task
 		created, err := s.repo.Create(ctx, newTask)
 		if err != nil {
 			log.Printf("Не удалось создать повторяющуюся задачу из шаблона %d: %v", template.ID, err)
@@ -102,7 +102,7 @@ func (s *Scheduler) generateTasks(ctx context.Context) error {
 		generatedCount++
 		log.Printf("Сгенерирована повторяющаяся задача %d из шаблона %d", created.ID, template.ID)
 
-		// Обновляем время следующего выполнения шаблона
+		// Обновить время следующего выполнения шаблона
 		if err := s.updateNextExecution(ctx, &template, now); err != nil {
 			log.Printf("Не удалось обновить следующее выполнение для шаблона %d: %v", template.ID, err)
 		}
@@ -115,7 +115,7 @@ func (s *Scheduler) generateTasks(ctx context.Context) error {
 	return nil
 }
 
-// getTasksNeedingGeneration возвращает шаблонные задачи, которые должны создать новые экземпляры
+// getTasksNeedingGeneration возвращает шаблонные задачи, которые должны сгенерировать новые экземпляры
 func (s *Scheduler) getTasksNeedingGeneration(ctx context.Context, now time.Time) ([]taskdomain.Task, error) {
 	allTasks, err := s.repo.List(ctx)
 	if err != nil {
@@ -140,16 +140,16 @@ func (s *Scheduler) updateNextExecution(ctx context.Context, template *taskdomai
 		return fmt.Errorf("template has no periodicity")
 	}
 
-	// Рассчитываем время следующего выполнения
+	// Рассчитать время следующего выполнения
 	nextExec := template.Periodicity.CalculateNextExecution(now)
 	
-	// Проверяем, не выходит ли следующее выполнение за пределы конечной даты
+	// Проверить, не выходит ли следующее выполнение за дату окончания
 	if template.Periodicity.EndDate != nil && nextExec.After(*template.Periodicity.EndDate) {
-		log.Printf("Шаблон %d достиг конечной даты, больше нет выполнений", template.ID)
+		log.Printf("Шаблон %d достиг даты окончания, больше выполнений не будет", template.ID)
 		return nil
 	}
 
-	// Обновляем шаблон с новым временем следующего выполнения
+	// Обновить шаблон с новым временем следующего выполнения
 	template.Periodicity.NextExecution = &nextExec
 	template.UpdatedAt = now
 
@@ -164,7 +164,7 @@ func (s *Scheduler) GenerateOnce(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	
-	// Считаем сгенерированные задачи
+	// Подсчитать сгенерированные задачи
 	templateTasks, err := s.getTasksNeedingGeneration(ctx, s.now())
 	if err != nil {
 		return 0, err

@@ -43,9 +43,9 @@ func main() {
 	docsHandler := swaggerdocs.NewHandler()
 	router := transporthttp.NewRouter(taskHandler, docsHandler)
 
-	// Запускаем автоматический планировщик генерации задач
+	// Start the automatic task generation scheduler
 	go func() {
-		// Проверяем задачи для генерации каждые 5 минут
+		// Check for tasks to generate every 5 minutes
 		schedulerInterval := 5 * time.Minute
 		scheduler.Start(ctx, schedulerInterval)
 	}()
